@@ -59,6 +59,10 @@ LOGICAL_GATE_SET: frozenset[str] = frozenset(
     {"Hadamard", "RX", "RY", "RZ", "Rot", "PhaseShift", "CNOT", "CZ", "MultiRZ"}
 )
 
+# PennyLane 0.46 restricts qml.transforms.decompose to compiled workflows under
+# @qp.qjit and routes tape-based decomposition to qml.transforms._tape_decompose.
+_decompose = getattr(qml.transforms, "_tape_decompose", qml.transforms.decompose)
+
 
 @dataclass(frozen=True)
 class CircuitSummary:
@@ -279,7 +283,7 @@ def _decompose_logical(tape: qml.tape.QuantumScript) -> qml.tape.QuantumScript:
     phase is not a gate and would otherwise add to ``depth`` and, on two
     wires, to ``n_two_qubit_gates``.
     """
-    (decomposed,), _ = qml.transforms.decompose(
+    (decomposed,), _ = _decompose(
         tape,
         gate_set=(LOGICAL_GATE_SET - {"MultiRZ"}) | {"GlobalPhase"},
         stopping_condition=_is_two_wire_multirz,
@@ -455,7 +459,7 @@ def _inert_slots(tape: qml.tape.QuantumScript) -> list[tuple[Any, bool]]:
     # Every gate in the set has scalar parameters, so passing it does not
     # change what stops; graph-based decomposition requires a gate_set, and
     # emits GlobalPhase (see _decompose_logical).
-    (tape,), _ = qml.transforms.decompose(
+    (tape,), _ = _decompose(
         tape,
         gate_set=LOGICAL_GATE_SET | {"GlobalPhase"},
         stopping_condition=_has_scalar_parameters,
