@@ -42,7 +42,7 @@ import torch
 from torch import nn
 
 from hqnn_forge.diagnostics import LOGICAL_GATE_SET, CircuitSummary, circuit_summary
-from hqnn_forge.diagnostics.circuit import _tape_resources
+from hqnn_forge.diagnostics.circuit import _decompose, _tape_resources
 from hqnn_forge.models import HybridBinaryClassifier
 
 pytestmark = pytest.mark.reproducibility
@@ -76,12 +76,6 @@ def _published_shnn() -> tuple[nn.ModuleDict, qml.QNode]:
     pre = nn.Sequential(nn.Linear(N_QUBITS, N_QUBITS), _PiSigmoid())
     post = nn.Linear(1, 1)  # followed by a parameter-free Sigmoid
     return nn.ModuleDict({"pre": pre, "vqc": vqc, "post": post}), circuit
-
-
-# PennyLane 0.46 restricts qml.transforms.decompose to compiled workflows under
-# @qp.qjit and routes tape-based decomposition to qml.transforms._tape_decompose.
-# _tape_decompose is private and may be renamed before PennyLane 0.46 is released.
-_decompose = getattr(qml.transforms, "_tape_decompose", qml.transforms.decompose)
 
 
 def _logical_tape(circuit: qml.QNode, **weights: torch.Tensor) -> qml.tape.QuantumScript:

@@ -519,8 +519,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dataset-selection, and training options (#563)
 
 ### Fixed
-- Circuit diagnostics work again with PennyLane 0.46 by routing tape decomposition to
-  `_tape_decompose` (#623)
+- Circuit diagnostics (`circuit_summary`, `draw_circuit`, `count_inert_parameters`) no
+  longer fail on PennyLane 0.46 development builds, where `qml.transforms.decompose` stopped
+  accepting a tape (#623)
 - `examples/does_the_quantum_layer_help.py` now reuses the rounding-aware
   feature standardisation so near-constant columns are centred rather than
   incorrectly scaled to unit variance (#604)

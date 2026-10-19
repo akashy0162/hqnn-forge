@@ -60,7 +60,7 @@ LOGICAL_GATE_SET: frozenset[str] = frozenset(
 )
 
 # PennyLane 0.46 restricts qml.transforms.decompose to compiled workflows under
-# @qp.qjit and routes tape-based decomposition to qml.transforms._tape_decompose.
+# @qml.qjit and routes tape-based decomposition to qml.transforms._tape_decompose.
 # _tape_decompose is private and may be renamed before PennyLane 0.46 is released.
 _decompose = getattr(qml.transforms, "_tape_decompose", qml.transforms.decompose)
 
