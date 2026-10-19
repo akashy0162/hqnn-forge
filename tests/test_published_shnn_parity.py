@@ -78,10 +78,16 @@ def _published_shnn() -> tuple[nn.ModuleDict, qml.QNode]:
     return nn.ModuleDict({"pre": pre, "vqc": vqc, "post": post}), circuit
 
 
+# PennyLane 0.46 restricts qml.transforms.decompose to compiled workflows under
+# @qp.qjit and routes tape-based decomposition to qml.transforms._tape_decompose.
+# _tape_decompose is private and may be renamed before PennyLane 0.46 is released.
+_decompose = getattr(qml.transforms, "_tape_decompose", qml.transforms.decompose)
+
+
 def _logical_tape(circuit: qml.QNode, **weights: torch.Tensor) -> qml.tape.QuantumScript:
     """The tape ``circuit`` runs for one sample, decomposed to ``LOGICAL_GATE_SET``."""
     tape = qml.workflow.construct_tape(circuit, level="top")(torch.zeros(N_QUBITS), **weights)
-    (decomposed,), _ = qml.transforms.decompose(tape, gate_set=LOGICAL_GATE_SET)
+    (decomposed,), _ = _decompose(tape, gate_set=LOGICAL_GATE_SET)
     return decomposed
 
 
