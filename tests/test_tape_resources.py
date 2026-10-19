@@ -62,8 +62,16 @@ LAYERS = [
 ]
 
 
-def _specs(tape: qml.tape.QuantumScript) -> dict[str, Any]:
-    """Get PennyLane resources across supported API versions."""
+def _pennylane_resources(tape: qml.tape.QuantumScript) -> dict[str, Any]:
+    """
+    PennyLane's resources across supported API versions.
+
+    PennyLane 0.46 renames and drops several fields of ``SpecsResources``:
+    - ``gate_types`` (0.45) is renamed to ``counts`` (0.46+)
+    - ``num_gates`` (0.45) is renamed to ``total_quantum_operations`` (0.46+)
+    - ``depth`` is unchanged across versions
+    - ``gate_sizes`` (0.45) is dropped in 0.46+
+    """
     res = qml.resource.resources_from_tape(tape)
     counts = getattr(res, "gate_types", None)
     if counts is None:
@@ -71,20 +79,25 @@ def _specs(tape: qml.tape.QuantumScript) -> dict[str, Any]:
     total = getattr(res, "num_gates", None)
     if total is None:
         total = res.total_quantum_operations
-    return {"depth": res.depth, "n_gates": total, "gate_counts": dict(counts)}
+    return {
+        "depth": res.depth,
+        "n_gates": total,
+        "gate_counts": dict(counts),
+        "gate_sizes": getattr(res, "gate_sizes", None),
+    }
 
 
 @pytest.mark.parametrize(("build", "n_two_qubit_gates"), LAYERS)
-def test_counts_match_pennylane_specs(build: Any, n_two_qubit_gates: int | None) -> None:
+def test_counts_match_pennylane_resources(build: Any, n_two_qubit_gates: int | None) -> None:
     tape = _logical_tape(build())
     ours = _tape_resources(tape)
-    theirs = _specs(tape)
+    theirs = _pennylane_resources(tape)
     assert ours.depth == theirs["depth"]
     assert ours.n_gates == theirs["n_gates"]
     assert ours.gate_counts == dict(sorted(theirs["gate_counts"].items()))
     if n_two_qubit_gates is not None:
         assert ours.n_two_qubit_gates == n_two_qubit_gates
-    gate_sizes = getattr(qml.resource.resources_from_tape(tape), "gate_sizes", None)
+    gate_sizes = theirs["gate_sizes"]
     if gate_sizes is not None:  # dropped in PennyLane 0.46
         assert ours.n_two_qubit_gates == sum(c for size, c in gate_sizes.items() if size >= 2)
 

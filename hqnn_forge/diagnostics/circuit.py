@@ -319,11 +319,10 @@ def _tape_resources(tape: qml.tape.QuantumScript) -> _TapeResources:
 
     On a tape from _decompose_logical these are the numbers ``resources_from_tape``
     reports in both 0.45 and 0.46.  On other tapes they can differ:
-    ``resources_from_tape`` prefixes a gate with several control wires with
-    their number (``2C(RX)``, here ``C(RX)``), expands a ``ResourcesOperation``
-    into its declared resources,
-    and gives an operation without wires (``Barrier()``, ``Snapshot``) or one
-    conditioned on a mid-circuit measurement a different layer.
+    ``resources_from_tape`` prefixes a gate with several control wires with their
+    number (``2C(RX)``, here ``C(RX)``), expands a ``ResourcesOperation`` into its
+    declared resources, and gives an operation without wires (``Barrier()``,
+    ``Snapshot``) or one conditioned on a mid-circuit measurement a different layer.
     """
     free_at: dict[object, int] = {}
     depth = 0
