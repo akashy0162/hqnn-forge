@@ -213,7 +213,7 @@ class TestHandBuiltTapes:
         # measurement, so the RZ before it stays inert; its own parameter is
         # not counted, since under state() a global phase is observable.
         tape = _tape(
-            lambda: (qml.RX(_p(0.4), 0), qml.RZ(_p(0.3), 0), qml.GlobalPhase(_p(0.2), wires=0)),
+            lambda: (qml.RX(_p(0.4), 0), qml.RZ(_p(0.3), 0), qml.GlobalPhase(_p(0.2))),
             [qml.expval(qml.PauliZ(0))],
         )
         assert count_inert_parameters(tape) == 1
@@ -608,7 +608,7 @@ class TestPerWeightEntry:
 
         def circuit() -> None:
             qml.RX(w[0], wires=0)
-            qml.GlobalPhase(w[1], wires=0)
+            qml.GlobalPhase(w[1])
 
         tape = _tape(circuit, [qml.state()])
         assert count_inert_parameters(tape) == 0
