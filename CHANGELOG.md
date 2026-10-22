@@ -533,6 +533,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same way (#651)
 
 ### Fixed
+- `apply_shots(model, None)` and a `shot_sweep` with `None` in `shots` raise the same
+  `ValueError` as layer construction on a sampling-only device, before any QNode is swapped
+  or any prediction runs, instead of PennyLane's `DeviceError` at the first forward pass (#684)
 - `examples/benchmark_rydberg_features.py` uses a pairwise-summation bound for every
   standardised column in steps 2 and 4: at 150 fitting rows, a `½ + 2⁻⁵²g` column is only
   centred up to about 16 units in the last place, rather than the old bound's 150, so raw
