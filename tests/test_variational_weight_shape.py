@@ -72,6 +72,7 @@ EXPECTED_SHAPES: dict[Entangler, tuple[int, ...]] = {
     "strongly_entangling": (2, 4, 3),
     "brickwork": (2, 4, 3),
     "hardware_efficient": (2, 4),
+    "rydberg": (2, 4, 3),
 }
 
 

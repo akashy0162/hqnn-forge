@@ -379,6 +379,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removes cache entries computed under another code digest or key environment and
   reports the removed files and bytes, leaving unreadable, legacy and partial files
   untouched (#575, #618)
+- `AtomRegister.interaction_graph` and `blockade_triangles` (pairs and triples strictly within the
+  blockade radius), `hqnn_forge.circuits.blockade_schedule` (blockade CZ/CCZ gates in parallel
+  layers, refusing a disconnected register) and `neutral_atom_layer` (those gates, then `Rot` on
+  every atom) (#418, #643)
+- `entangler="rydberg"` on every encoder and classifier: `neutral_atom_layer` on the fixed
+  register `hqnn_forge.circuits.rydberg_chain(n_qubits)` (atoms 6 µm apart,
+  `RYDBERG_BLOCKADE_RADIUS` = 8.69 µm, so CZ on neighbours only, in `min(3, n_qubits − 1)`
+  parallel layers per block), and `CircuitSummary.n_blockade_layers`, which counts those layers
+  (`None` for the other entanglers) (#418, #643)
 
 ### Changed
 - Devices whose registered constructor does not explicitly declare `seed` do not receive it;
@@ -649,6 +658,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directory are no longer read); each entry stores the environment it was computed in, and
   the lines record it as `feature_environment`, and their `tuning` per tuning fold as
   `feature_environments` and `feature_cache_hits` (#522, #543)
+- The `evolve` docstring said that two runs with `n` and `2n` steps differ by about 3/4 of
+  the coarser run's error without saying when: at coarse steps they can agree while both are
+  wrong (one atom at `ΩT = 16π`, `γ = 0.1 Ω` gives `⟨n⟩ = 0` to rounding at 1, 2, 4, 8 and 16 steps,
+  where the answer is 0.358).
+  It now states the condition under which the estimate held, `dt · (W + Nγ/2) <= 1/2` with
+  `W` the spread of the energies, how close it came in seeded sweeps (#627), the error size
+  below which it fails, and that `n_steps` keeps no default or rule (#507, #599)
 - `examples/benchmark_rydberg_features.py` refuses before any dataset is loaded what it used to
   fail on late or not at all: an `--out` that cannot be written (it raised only after the first
   arm was trained), `n_atoms` above 12 with arm D, whose circuits run on `default.qubit` with

@@ -139,8 +139,9 @@ class ParallelHybridClassifier(QuantumTrunk, BinaryClassifierBase):
         VQC ansatz layers.  Default: 2.  At 1, with angle encoding and
         ``readout="first"``, ⟨Z_0⟩ misses the first encoded angle under the
         default ring and RX embedding, and most of them under
-        ``entangler="brickwork"``; under ``"hardware_efficient"`` it sees at most
-        ``n_layers + 1`` of them at any depth.  Use 2 or more with a ring.  See step 2 of
+        ``entangler="brickwork"``; under ``"hardware_efficient"`` and ``"rydberg"``
+        it sees at most ``n_layers + 1`` of them at any depth.  Use 2 or more with a
+        ring.  See step 2 of
         :func:`hqnn_forge.encoding.angle_embedding._make_angle_embedding_circuit`.
     classical_hidden_dim:
         Width of the classical MLP branch.  Default: 16.
@@ -193,8 +194,10 @@ class ParallelHybridClassifier(QuantumTrunk, BinaryClassifierBase):
         ``"ring"`` (default: CNOT ring then ``Rot``), ``"strongly_entangling"``
         (``qml.StronglyEntanglingLayers``: ``Rot`` then a CNOT ring of growing
         range), ``"brickwork"`` (nearest-neighbour CNOT pairs, so each ⟨Z_i⟩
-        keeps a local light cone at shallow depth) or ``"hardware_efficient"``
-        (a CZ ladder then ``RY``: a third of the circuit parameters).  See
+        keeps a local light cone at shallow depth), ``"hardware_efficient"``
+        (a CZ ladder then ``RY``: a third of the circuit parameters) or
+        ``"rydberg"`` (the blockade CZs of a neutral-atom chain, then ``Rot``;
+        :func:`hqnn_forge.circuits.rydberg_chain`).  See
         :func:`hqnn_forge.encoding.angle_embedding.apply_variational_layers`.
     readout:
         ``"all"`` (default): the head reads every ⟨Z_i⟩.  ``"first"``: ⟨Z_0⟩
