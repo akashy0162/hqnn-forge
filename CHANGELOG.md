@@ -379,6 +379,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removes cache entries computed under another code digest or key environment and
   reports the removed files and bytes, leaving unreadable, legacy and partial files
   untouched (#575, #618)
+- `AtomRegister.interaction_graph` and `blockade_triangles` (pairs and triples strictly within the
+  blockade radius), `hqnn_forge.circuits.blockade_schedule` (blockade CZ/CCZ gates in parallel
+  layers, refusing a disconnected register) and `neutral_atom_layer` (those gates, then `Rot` on
+  every atom) (#418, #643)
+- `entangler="rydberg"` on every encoder and classifier: `neutral_atom_layer` on the fixed
+  register `hqnn_forge.circuits.rydberg_chain(n_qubits)` (atoms 6 µm apart,
+  `RYDBERG_BLOCKADE_RADIUS` = 8.69 µm, so CZ on neighbours only, in `min(3, n_qubits − 1)`
+  parallel layers per block), and `CircuitSummary.n_blockade_layers`, which counts those layers
+  (`None` for the other entanglers) (#418, #643)
 
 ### Changed
 - Devices whose registered constructor does not explicitly declare `seed` do not receive it;

@@ -193,15 +193,18 @@ Beyond the protocol:
 ## A variational block (ansatz)
 
 **Reference:** `apply_variational_layers` in `hqnn_forge/encoding/_common.py`. The
-`"hardware_efficient"` branch, the most recent addition, is the example to copy: a primitive in
-`hqnn_forge/circuits/` applied once per layer, with a weight shape of its own. `"brickwork"`
+`"hardware_efficient"` branch is the example to copy: a primitive in `hqnn_forge/circuits/`
+applied once per layer, with a weight shape of its own. `"brickwork"`
 shows a block written inline, and `"strongly_entangling"` one that depends on the layer index.
 
 The functions in `hqnn_forge/circuits/` are the per-layer blocks the encoders run, selected by
 their `entangler` argument through `apply_variational_layers`. Note the naming wart:
 `strongly_entangling_layer` is `entangler="ring"` (not `"strongly_entangling"`, which is
-PennyLane's `qml.StronglyEntanglingLayers`) and `hardware_efficient_layer` is
-`entangler="hardware_efficient"`.
+PennyLane's `qml.StronglyEntanglingLayers`), `hardware_efficient_layer` is
+`entangler="hardware_efficient"` and `neutral_atom_layer` is `entangler="rydberg"` on the fixed
+register `rydberg_chain(n_qubits)`. A primitive that needs data besides `n_qubits`, such as an
+atom register, has to derive it from `n_qubits` in order to become an `entangler` value: the
+signature below passes nothing else.
 
 The core of adding an ansatz is three steps; the sections below list the conventions, tests and
 other places to update:
