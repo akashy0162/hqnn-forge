@@ -230,13 +230,18 @@ def sample_input(layer: CircuitLayer) -> torch.Tensor:
     vector has no phases and so emits no ``RZ`` rotations, while distinct
     magnitudes and one negative entry make every rotation block non-zero,
     yielding ``2**n - 1`` ``RY`` and ``2**n - 1`` ``RZ`` rotations when
-    ``n_features == 2**n``.  On PennyLane 0.46, real-valued state preparation
-    encodes signs directly into the ``RY`` angles, eliminating the ``RZ`` block
-    entirely; the distinct magnitudes still ensure the full ``2**n - 1``
-    ``RY`` rotations are emitted.  In either version, the counts are the most
-    any real input needs.  With fewer features the zero padding leaves out the
-    ``RY`` rotations that act only on padded amplitudes (for ``n = 3``, 6 with 4
-    features, 4 with 2), since no input can make those non-zero.
+    ``n_features == 2**n``. On PennyLane 0.46, a real state that does not
+    require grad is prepared with ``RY`` and ``CNOT`` alone, its signs in the
+    ``RY`` angles, so the sample shows ``2**n - 1`` ``RY`` and no ``RZ``. For
+    inputs without grad, as here, these counts are the most any real input
+    needs on either version. With fewer features the zero padding leaves out
+    the ``RY`` rotations that act only on padded amplitudes (for ``n = 3``, 6
+    with 4 features, 4 with 2), since no such input can make those non-zero.
+    An input that requires grad (an amplitude layer behind a classical
+    encoder, in training) keeps every rotation: in the checked cases,
+    PennyLane emits ``2**n - 1`` ``RY`` and ``2**n - 1`` ``RZ`` on both
+    versions, padding included, which can be more than this sample shows
+    (#705).
     """
     width = input_width(layer)
     zeros = torch.zeros(1, width, dtype=torch.float64)
