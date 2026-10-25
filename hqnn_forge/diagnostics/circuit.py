@@ -225,23 +225,25 @@ def sample_input(layer: CircuitLayer) -> torch.Tensor:
     depend on it.
 
     Amplitude embedding has no state for the zero vector, and the gates of
-    its Möttönen state preparation *do* depend on the input: PennyLane leaves
-    out rotations whose angles are zero.  On PennyLane 0.45, an all-positive
-    vector has no phases and so emits no ``RZ`` rotations, while distinct
-    magnitudes and one negative entry make every rotation block non-zero,
-    yielding ``2**n - 1`` ``RY`` and ``2**n - 1`` ``RZ`` rotations when
-    ``n_features == 2**n``. On PennyLane 0.46, a real state that does not
-    require grad is prepared with ``RY`` and ``CNOT`` alone, its signs in the
-    ``RY`` angles, so the sample shows ``2**n - 1`` ``RY`` and no ``RZ``. For
-    inputs without grad, as here, these counts are the most any real input
-    needs on either version. With fewer features the zero padding leaves out
-    the ``RY`` rotations that act only on padded amplitudes (for ``n = 3``, 6
-    with 4 features, 4 with 2), since no such input can make those non-zero.
-    An input that requires grad (an amplitude layer behind a classical
-    encoder, in training) keeps every rotation: in the checked cases,
-    PennyLane emits ``2**n - 1`` ``RY`` and ``2**n - 1`` ``RZ`` on both
-    versions, padding included, which can be more than this sample shows
-    (#705).
+    its Möttönen state preparation depend on whether the input requires
+    gradients.  During training (such as behind a classical encoder), the
+    input tensor requires gradients, and PennyLane retains every rotation
+    in the decomposition: ``2**n - 1`` ``RY`` and ``2**n - 1`` ``RZ``
+    rotations and ``2**(n+1) - 2*n - 2`` CNOTs on both PennyLane 0.45 and
+    0.46, including padding-related rotations.  For amplitude layers with
+    ``diff_method="backprop"``, this sample carries ``requires_grad=True``
+    so that :func:`circuit_summary` and default :func:`draw_circuit`
+    accurately describe that training circuit, matching the training forward
+    pass independently of particular input values (#705).
+
+    When raw inputs without gradients are supplied (e.g. passing a detached
+    tensor explicitly to :func:`draw_circuit`), PennyLane may omit zero-angle
+    rotations: on PennyLane 0.46, a real state without gradients is prepared
+    with ``RY`` and ``CNOT`` alone (no ``RZ``), and zero padding leaves out
+    rotations that act only on padded amplitudes.  For non-backprop methods
+    (such as ``diff_method="adjoint"`` on lightning), where input gradients
+    are not supported and raise ``RuntimeError``, the sample carries no
+    gradients and reflects the no-gradient execution.
     """
     width = input_width(layer)
     zeros = torch.zeros(1, width, dtype=torch.float64)
@@ -250,6 +252,11 @@ def sample_input(layer: CircuitLayer) -> torch.Tensor:
     except ValueError:
         full = torch.arange(1, width + 1, dtype=torch.float64)
         full[0] = -1.0
+        qlayer = getattr(layer, "qlayer", None)
+        qnode = getattr(qlayer, "qnode", None)
+        diff_method = getattr(qnode, "diff_method", None)
+        if diff_method == "backprop":
+            full = full.clone().requires_grad_(True)
         return full
     return zeros[0]
 
