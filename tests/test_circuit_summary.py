@@ -514,7 +514,7 @@ class TestAmplitudeEmbedding:
         drawing = draw_circuit(layer)
         assert all(f"{w}: " in drawing for w in range(3)) and "RY(" in drawing
         assert "RZ(" in drawing
-        nograd_drawing = draw_circuit(layer, torch.arange(1, 9, dtype=torch.float64))
+        nograd_drawing = draw_circuit(layer, sample_input(layer).detach())
         assert ("RZ(" in nograd_drawing) == (not PENNYLANE_046)
         with pytest.raises(ValueError, match=r"one sample of shape \(8,\)"):
             draw_circuit(layer, torch.zeros(3))
