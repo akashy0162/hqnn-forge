@@ -438,8 +438,9 @@ class TestAmplitudeEmbedding:
         summary = circuit_summary(_amplitude(n_qubits))
         full = 2**n_qubits - 1
         assert summary.gate_counts["RY"] == full
-        assert summary.gate_counts["Rot"] == n_qubits
         assert summary.gate_counts["RZ"] == full
+        assert summary.gate_counts["CNOT"] == 2 ** (n_qubits + 1) - 4 + n_qubits
+        assert summary.gate_counts["Rot"] == n_qubits
 
     def test_the_counts_bound_every_real_input(self) -> None:
         # PennyLane drops rotation blocks whose angles are all zero, so a
@@ -538,6 +539,42 @@ class TestAmplitudeEmbedding:
         assert "RX(0.00)" in draw_circuit(layer)
         assert sample_input(layer).tolist() == [0.0, 0.0, 0.0]
 
+    def test_parameter_shift_sample_has_no_grad_and_summary_succeeds(self) -> None:
+        layer = AmplitudeEncodingLayer(
+            n_qubits=3,
+            n_layers=1,
+            device_name="default.qubit",
+            diff_method="parameter-shift",
+        )
+        sample = sample_input(layer)
+        assert not sample.requires_grad
+
+        summary = circuit_summary(layer)
+        assert summary.gate_counts["RY"] == 2**3 - 1
+        assert summary.gate_counts["Rot"] == 3
+        assert summary.gate_counts.get("RZ", 0) == (0 if PENNYLANE_046 else 2**3 - 1)
+        assert summary.gate_counts["CNOT"] == (9 if PENNYLANE_046 else 15)
+
+        drawing = draw_circuit(layer)
+        assert "RY(" in drawing
+        assert ("RZ(" in drawing) == (not PENNYLANE_046)
+
+    @staticmethod
+    def _assert_summary_matches_training_tape(
+        summary: CircuitSummary,
+        qlayer: qml.qnn.TorchLayer,
+        prepared_inputs: torch.Tensor,
+    ) -> None:
+        weights = dict(qlayer.qnode_weights.items())
+        tape = qml.workflow.construct_tape(qlayer.qnode, level="top")(prepared_inputs, **weights)
+        decomposed = _decompose_logical(tape)
+        actual_counts = Counter(op.name for op in decomposed.operations)
+        actual_two_qubit = sum(1 for op in decomposed.operations if len(op.wires) >= 2)
+
+        assert summary.gate_counts == dict(actual_counts)
+        assert summary.n_two_qubit_gates == actual_two_qubit
+        assert summary.n_gates == len(decomposed.operations)
+
     def test_circuit_summary_matches_training_forward_tape_with_classical_encoder(
         self,
     ) -> None:
@@ -557,6 +594,12 @@ class TestAmplitudeEmbedding:
             init_strategy="normal",
         )
         summary = circuit_summary(model)
+        assert summary.gate_counts == {
+            "CNOT": 15,
+            "RY": 7,
+            "RZ": 7,
+            "Rot": 3,
+        }
 
         x = torch.randn(2, 6, requires_grad=True)
         enc = model.classical_encoder(x)
@@ -565,16 +608,7 @@ class TestAmplitudeEmbedding:
         prepared = model.quantum_layer.prepare_inputs(sample)
         assert prepared.requires_grad
 
-        qlayer = model.quantum_layer.qlayer
-        weights = dict(qlayer.qnode_weights.items())
-        tape = qml.workflow.construct_tape(qlayer.qnode, level="top")(prepared, **weights)
-        decomposed = _decompose_logical(tape)
-        actual_counts = Counter(op.name for op in decomposed.operations)
-        actual_two_qubit = sum(1 for op in decomposed.operations if len(op.wires) >= 2)
-
-        assert summary.gate_counts == dict(actual_counts)
-        assert summary.n_two_qubit_gates == actual_two_qubit
-        assert summary.n_gates == len(decomposed.operations)
+        self._assert_summary_matches_training_tape(summary, model.quantum_layer.qlayer, prepared)
 
     def test_circuit_summary_matches_training_forward_tape_padded(self) -> None:
         """
@@ -594,16 +628,7 @@ class TestAmplitudeEmbedding:
         prepared = layer.prepare_inputs(x)
         assert prepared.requires_grad
 
-        qlayer = layer.qlayer
-        weights = dict(qlayer.qnode_weights.items())
-        tape = qml.workflow.construct_tape(qlayer.qnode, level="top")(prepared, **weights)
-        decomposed = _decompose_logical(tape)
-        actual_counts = Counter(op.name for op in decomposed.operations)
-        actual_two_qubit = sum(1 for op in decomposed.operations if len(op.wires) >= 2)
-
-        assert summary.gate_counts == dict(actual_counts)
-        assert summary.n_two_qubit_gates == actual_two_qubit
-        assert summary.n_gates == len(decomposed.operations)
+        self._assert_summary_matches_training_tape(summary, layer.qlayer, prepared)
 
     def test_circuit_summary_matches_training_forward_tape_full(self) -> None:
         """
@@ -617,13 +642,4 @@ class TestAmplitudeEmbedding:
         prepared = layer.prepare_inputs(x)
         assert prepared.requires_grad
 
-        qlayer = layer.qlayer
-        weights = dict(qlayer.qnode_weights.items())
-        tape = qml.workflow.construct_tape(qlayer.qnode, level="top")(prepared, **weights)
-        decomposed = _decompose_logical(tape)
-        actual_counts = Counter(op.name for op in decomposed.operations)
-        actual_two_qubit = sum(1 for op in decomposed.operations if len(op.wires) >= 2)
-
-        assert summary.gate_counts == dict(actual_counts)
-        assert summary.n_two_qubit_gates == actual_two_qubit
-        assert summary.n_gates == len(decomposed.operations)
+        self._assert_summary_matches_training_tape(summary, layer.qlayer, prepared)
